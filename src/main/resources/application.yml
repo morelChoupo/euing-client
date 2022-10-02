@@ -1,0 +1,22 @@
+spring:
+  autoconfigure:
+    exclude=org.springframework.boot.autoconfigure.jdbc.DataSourceAutoConfiguration, org.springframework.boot.autoconfigure.orm.jpa.HibernateJpaAutoConfiguration
+  datasource:
+    url: jdbc:oracle:thin:@51.254.210.55:1521:EUING
+    username: EUING
+    password: EUING
+  jpa:
+    hibernate.ddl-auto: update
+    generate-ddl: true
+    #    show-sql: true
+    properties:
+      hibernate:
+        format_sql: true
+        dialect: org.hibernate.dialect.Oracle10gDialect
+
+euing:
+ service:
+  guichet-code: 981
+  utilisateur-code: 2960
+server:
+  port: 9990
