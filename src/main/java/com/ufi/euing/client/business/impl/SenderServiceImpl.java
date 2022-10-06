@@ -4,6 +4,7 @@ import com.ufi.euing.client.business.SenderService;
 import com.ufi.euing.client.entity.GenericsResponse;
 import com.ufi.euing.client.entity.Sender;
 import com.ufi.euing.client.exceptions.domain.EmailNotFoundException;
+import com.ufi.euing.client.props.EuingProperties;
 import com.ufi.euing.client.repositories.SenderRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
@@ -24,14 +25,19 @@ public class SenderServiceImpl implements SenderService {
 
     final SenderRepository repository;
 
-    public SenderServiceImpl(SenderRepository repository) {
+    final EuingProperties euingProperties;
+
+    public SenderServiceImpl(SenderRepository repository,
+                             EuingProperties euingProperties) {
         this.repository = repository;
+        this.euingProperties = euingProperties;
     }
 
 
     @Override
     public GenericsResponse<Sender> createSender(Sender sender) {
         try {
+
             sender.setSenDateCreate(new Date());
             sender.setSenDateModif(new Date());
 

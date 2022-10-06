@@ -5,6 +5,8 @@
  */
 package com.ufi.euing.client.entity;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
+
 import javax.persistence.*;
 import javax.validation.constraints.NotNull;
 import javax.validation.constraints.Size;
@@ -475,6 +477,8 @@ public class TransactionEuing implements Serializable {
     @Column(name = "TRANS_DATE_TRANSMISSION")
     @Temporal(TemporalType.TIMESTAMP)
     private Date transDateTransmission;
+
+    @JsonIgnore
     @OneToMany(mappedBy = "eveTransId")
     private List<Events> eventsList;
     @JoinColumn(name = "TRANS_BEN_ID", referencedColumnName = "BEN_ID", nullable = false)

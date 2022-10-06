@@ -16,6 +16,7 @@ import java.math.BigDecimal;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 import java.util.Date;
+import java.util.List;
 
 
 @Service
@@ -80,34 +81,57 @@ public class MfsServiceImpl implements com.ufi.euing.client.business.MfsService 
     public GenericsResponse doGetTarif(GetTransfinQuoteRequest request) {
         GenericsResponse<GetTransfinQuote> response;
         try {
-            //Compagnie compagnie = compagnieFacadeLocal.findByCodePartenaire(MfsUtils.MFS_COMPAGNIE_CODE);
-            com.ufi.euing.client.entity.Service service = (serviceService.getServiceByCode(MfsUtils.MFS_SERVICE_CODE)).getData();
-            Guichet guichet = guichetService.getById(euingProperties.getGuichetCode());
-            Utilisateur usr = utilisateurService.find(euingProperties.getUtilisateurCode());
+            GenericsResponse<Parametrews> paramRep = parametrewsService.getParametrewsByPartnerCode(MfsUtils.MFS_COMPAGNIE_CODE);
+            if (paramRep.getResponseCode() == 200) {
+                Parametrews pws = paramRep.getT();
+                //Compagnie compagnie = compagnieFacadeLocal.findByCodePartenaire(MfsUtils.MFS_COMPAGNIE_CODE);
+                com.ufi.euing.client.entity.Service service = (serviceService.getServiceByCode(MfsUtils.MFS_SERVICE_CODE)).getData();
+                Guichet guichet = guichetService.getById(euingProperties.getGuichetCode());
+                Utilisateur usr = utilisateurService.find(euingProperties.getUtilisateurCode());
 
-            Pays po = guichet.getAgence().getCompagnie().getPays();
-            String originDev = po.getPsZmCode().getZmDevCode().getDevCode();
-            Pays pd = paysService.findPaysByCodeIso(request.getDestinationCountry()).getData();
-            String destDev = pd.getPsZmCode().getZmDevCode().getDevCode();
+                Pays po = guichet.getAgence().getCompagnie().getPays();
+                String originDev = po.getPsZmCode().getZmDevCode().getDevCode();
+                Pays pd = paysService.findPaysByCodeIso(request.getDestinationCountry()).getData();
+                String destDev = pd.getPsZmCode().getZmDevCode().getDevCode();
 
-            GenericsResponse<CalculTarifInternational> feesResponse = transactionEuingService.calculTarifInterTransaction(guichet.getAgence().getCompagnie().getId(), guichet.getAgence().getCompagnie().getLibelle(),
-                    service.getId(), service.getNom(), pd.getPsCode(), pd.getPsLibelle(), 1, (float) request.getLocalAmount(), usr.getUsrId(), originDev, destDev);
-            if (feesResponse.getResponseCode() == 200) {
-                CalculTarifInternational tarif = (CalculTarifInternational) feesResponse.getData();
-                GetTransfinQuote quote = new GetTransfinQuote();
-                quote.setOriginatingCountry(po.getPsCode() + ":" + po.getPsLibelle());
-                quote.setDestinationCountry(pd.getPsCode() + ":" + pd.getPsLibelle());
-                quote.setOriginatingCurrency(originDev);
-                quote.setDestinationCurrency(destDev);
-                quote.setLocalAmount(tarif.getAmountSent());
-                quote.setCustomerCharge(tarif.getFees());
-                quote.setTaxCharged(tarif.getOthersFees());
-                quote.setExchangeRate(tarif.getExchangeRate());
-                quote.setCashTellerReceiver(tarif.getAmountToPaid());
-                quote.setPayoutAmount(tarif.getTotalToPaid());
-                response = new GenericsResponse(quote);
+                List<RateModel> respRate = mfsService.doGetRate(pws.getLogin(), pws.getPassword(), pd.getPsCode2(), originDev, destDev);
+                Double rate = null;
+                Double amountToPaid = null;
+                if (!respRate.isEmpty()) {
+                    rate = respRate.get(0).getFxRate();
+                    amountToPaid = rate * request.getLocalAmount();
+                }
+
+                GenericsResponse<CalculTarifInternational> feesResponse = transactionEuingService.calculTarifInterTransaction(guichet.getAgence().getCompagnie().getId(), guichet.getAgence().getCompagnie().getLibelle(),
+                        service.getId(), service.getNom(), pd.getPsCode(), pd.getPsLibelle(), 1, request.getLocalAmount(), usr.getUsrId(), originDev, destDev);
+                if (feesResponse.getResponseCode() == 200) {
+                    CalculTarifInternational tarif = (CalculTarifInternational) feesResponse.getData();
+                    GetTransfinQuote quote = new GetTransfinQuote();
+                    if (rate == null) {
+                        rate = tarif.getExchangeRate();
+                    }
+                    if (amountToPaid == null) {
+                        amountToPaid = tarif.getAmountToPaid();
+                    }
+
+                    quote.setOriginatingCountry(po.getPsCode() + ":" + po.getPsLibelle());
+                    quote.setDestinationCountry(pd.getPsCode() + ":" + pd.getPsLibelle());
+                    quote.setOriginatingCurrency(originDev);
+                    quote.setDestinationCurrency(destDev);
+                    quote.setLocalAmount(tarif.getAmountSent());
+                    quote.setCustomerCharge(tarif.getFees());
+                    quote.setTaxCharged(tarif.getOthersFees());
+                    //quote.setExchangeRate(tarif.getExchangeRate());
+                    quote.setExchangeRate(rate);
+                    //quote.setCashTellerReceiver(tarif.getAmountToPaid());
+                    quote.setCashTellerReceiver(amountToPaid);
+                    quote.setPayoutAmount(tarif.getTotalToPaid());
+                    response = new GenericsResponse(quote);
+                } else {
+                    response = new GenericsResponse(feesResponse.getResponseCode(), feesResponse.getResponseDescription(), null);
+                }
             } else {
-                response = new GenericsResponse(feesResponse.getResponseCode(), feesResponse.getResponseDescription(), null);
+                response = new GenericsResponse<>(paramRep.getResponseCode(), "Error Parametre ws " + MfsUtils.MFS_COMPAGNIE_CODE + " not found. Message ::: " + paramRep.getResponseDescription(), null);
             }
         } catch (Exception e) {
             e.printStackTrace();

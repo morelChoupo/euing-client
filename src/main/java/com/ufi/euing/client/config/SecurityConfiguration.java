@@ -21,9 +21,9 @@ import static org.springframework.security.config.http.SessionCreationPolicy.STA
 @EnableGlobalMethodSecurity(prePostEnabled = true)
 public class SecurityConfiguration extends WebSecurityConfigurerAdapter {
 
-    private JwtAuthorizationFilter jwtAuthorizationFilter;
-    private JwtAccessDeniedHandler jwtAccessDeniedHandler;
-    private JwtAuthenticationEntryPoint jwtAuthenticationEntryPoint;
+    private final JwtAuthorizationFilter jwtAuthorizationFilter;
+    private final JwtAccessDeniedHandler jwtAccessDeniedHandler;
+    private final JwtAuthenticationEntryPoint jwtAuthenticationEntryPoint;
 
 
     @Autowired

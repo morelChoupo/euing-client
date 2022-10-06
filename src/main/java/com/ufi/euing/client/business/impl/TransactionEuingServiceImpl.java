@@ -223,9 +223,9 @@ public class TransactionEuingServiceImpl extends AbstractFacade<TransactionEuing
                 }
                 // set parameters
 
-                storedProcedure.registerStoredProcedureParameter("pRES", Long.class, ParameterMode.OUT);
-                storedProcedure.registerStoredProcedureParameter("pRES_MESSAGE", String.class, ParameterMode.OUT);
-                storedProcedure.registerStoredProcedureParameter("pTRANS_ID", BigDecimal.class, ParameterMode.OUT);
+                storedProcedure.registerStoredProcedureParameter("pRES", Integer.class, ParameterMode.INOUT);
+                storedProcedure.registerStoredProcedureParameter("pRES_MESSAGE", String.class, ParameterMode.INOUT);
+                storedProcedure.registerStoredProcedureParameter("pTRANS_ID", BigDecimal.class, ParameterMode.INOUT);
                 storedProcedure.registerStoredProcedureParameter("pTRANS_GUICHET_ID", Long.class, ParameterMode.IN);
                 storedProcedure.registerStoredProcedureParameter("pTRANS_GUICHET", String.class, ParameterMode.IN);
                 storedProcedure.registerStoredProcedureParameter("pTRANS_AGENCY_ID", Long.class, ParameterMode.IN);
@@ -356,6 +356,9 @@ public class TransactionEuingServiceImpl extends AbstractFacade<TransactionEuing
                 // execute stored procedure
                 storedProcedure.execute();
                 log.info("################# storedProcedure.execute() ##################");
+                log.info("res {}", storedProcedure.getOutputParameterValue("pRES"));
+                log.info("res_message {}", storedProcedure.getOutputParameterValue("pRES_MESSAGE"));
+                log.info("trans_id {}", storedProcedure.getOutputParameterValue("pTRANS_ID"));
                 res = (Integer) storedProcedure.getOutputParameterValue("pRES");
                 res_message = (String) storedProcedure.getOutputParameterValue("pRES_MESSAGE");
                 trans_id = (BigDecimal) storedProcedure.getOutputParameterValue("pTRANS_ID");
@@ -374,8 +377,8 @@ public class TransactionEuingServiceImpl extends AbstractFacade<TransactionEuing
                 }
             } else {
                 storedProcedure = em.createStoredProcedureQuery("SP_UPDATE_TRANSACTION_THUNES");
-                storedProcedure.registerStoredProcedureParameter("pRES", Long.class, ParameterMode.OUT);
-                storedProcedure.registerStoredProcedureParameter("pRES_MESSAGE", String.class, ParameterMode.OUT);
+                storedProcedure.registerStoredProcedureParameter("pRES", Long.class, ParameterMode.INOUT);
+                storedProcedure.registerStoredProcedureParameter("pRES_MESSAGE", String.class, ParameterMode.INOUT);
                 storedProcedure.registerStoredProcedureParameter("pTRANS_ID", BigDecimal.class, ParameterMode.IN);
                 storedProcedure.registerStoredProcedureParameter("pTRANS_MTSTATUS", String.class, ParameterMode.IN);
                 storedProcedure.registerStoredProcedureParameter("pTRANS_MTTRANSACTIONID", String.class, ParameterMode.IN);
@@ -456,8 +459,8 @@ public class TransactionEuingServiceImpl extends AbstractFacade<TransactionEuing
             Integer res = null;
             String res_message = "";
 
-            storedProcedure.registerStoredProcedureParameter("pRES", Long.class, ParameterMode.OUT);
-            storedProcedure.registerStoredProcedureParameter("pRES_MESSAGE", String.class, ParameterMode.OUT);
+            storedProcedure.registerStoredProcedureParameter("pRES", Long.class, ParameterMode.INOUT);
+            storedProcedure.registerStoredProcedureParameter("pRES_MESSAGE", String.class, ParameterMode.INOUT);
             storedProcedure.registerStoredProcedureParameter("pTRANS_ID", BigDecimal.class, ParameterMode.IN);
             storedProcedure.registerStoredProcedureParameter("pTRANS_PAYER_GUICHET_ID", Long.class, ParameterMode.IN);
             storedProcedure.registerStoredProcedureParameter("pTRANS_PAYER_GUICHET", String.class, ParameterMode.IN);
@@ -1559,9 +1562,9 @@ public class TransactionEuingServiceImpl extends AbstractFacade<TransactionEuing
             BigDecimal trans_id = null;
             String res_message = "";
 
-            storedProcedure.registerStoredProcedureParameter("pRES", Long.class, ParameterMode.OUT);
-            storedProcedure.registerStoredProcedureParameter("pRES_MESSAGE", String.class, ParameterMode.OUT);
-            storedProcedure.registerStoredProcedureParameter("pTRANS_ID", BigDecimal.class, ParameterMode.OUT);
+            storedProcedure.registerStoredProcedureParameter("pRES", Long.class, ParameterMode.INOUT);
+            storedProcedure.registerStoredProcedureParameter("pRES_MESSAGE", String.class, ParameterMode.INOUT);
+            storedProcedure.registerStoredProcedureParameter("pTRANS_ID", BigDecimal.class, ParameterMode.INOUT);
 
             storedProcedure.registerStoredProcedureParameter("pTRANS_SENDER_GUICHET_ID", Long.class, ParameterMode.IN);
             storedProcedure.registerStoredProcedureParameter("pTRANS_SENDER_GUICHET", String.class, ParameterMode.IN);
@@ -1588,9 +1591,11 @@ public class TransactionEuingServiceImpl extends AbstractFacade<TransactionEuing
             storedProcedure.registerStoredProcedureParameter("pSENDER_ID", BigDecimal.class, ParameterMode.IN);
             storedProcedure.registerStoredProcedureParameter("pTRANS_AMOUNT_TO_SEND", BigDecimal.class, ParameterMode.IN);
 
-            storedProcedure.setParameter("pRES", null);
-            storedProcedure.setParameter("pRES_MESSAGE", null);
-            storedProcedure.setParameter("pTRANS_ID", null);
+            //storedProcedure.setParameter("pRES", null);
+            //storedProcedure.setParameter("pRES_MESSAGE", null);
+            //storedProcedure.setParameter("pTRANS_ID", null);
+
+
 
             storedProcedure.setParameter("pTRANS_SENDER_GUICHET_ID", trx.getTransGuichetId().getId());
             storedProcedure.setParameter("pTRANS_SENDER_GUICHET", trx.getTransGuichet());

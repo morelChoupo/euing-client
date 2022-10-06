@@ -103,7 +103,7 @@ public class ThunesServiceImpl implements ThunesService {
 
                 com.ufi.euing.client.entity.Service service = (serviceService.getServiceByCode(ThunesUtil.THUNES_SEND_SERVICE_CODE)).getData();
 
-                GenericsResponse<QuotationResponse> quotationResponse = this.doQuotation(request.getLocalAmount(), po.getPsCode(), pd.getPsCode(), request.getOriginatingCurrency(), request.getDestinationCurrency(), usr.getUsrId());
+                GenericsResponse<QuotationResponse> quotationResponse = doQuotation(request.getLocalAmount(), po.getPsCode(), pd.getPsCode(), request.getOriginatingCurrency(), request.getDestinationCurrency(), usr.getUsrId());
                 if (quotationResponse.getResponseCode() == 200) {
                     System.out.println("pCOMPANY_ID = " + guichet.getAgence().getCompagnie().getId()
                             + "  comp lbl  " + guichet.getAgence().getCompagnie().getLibelle()
@@ -168,28 +168,16 @@ public class ThunesServiceImpl implements ThunesService {
     GenericsResponse<QuotationResponse> doQuotation(double amount, String originCountryIso3, String destCountryIso3, String originCurrency, String destCurrency, BigDecimal senderId) {
         GenericsResponse<QuotationResponse> response;
         try {
+            Utilisateur usr = utilisateurService.find(euingProperties.getUtilisateurCode());
             GenericsResponse<Parametrews> p = parametrewsService.getParametrewsByPartnerCode("THUNES");
             if (p.getResponseCode() == 200) {
                 String payerId = null;
                 String resMsg = "Error ::: ";
 
-                ParametreBase parametreBase;
-                switch (destCountryIso3) {
-                    case "CHN":
-                        parametreBase = parametreBaseService.find(ThunesUtil.THUNES_CHINA_PAYER_ID);
-                        break;
-                    case "NGA":
-                        parametreBase = parametreBaseService.find(ThunesUtil.THUNES_NIGERIA_PAYER_ID);
-                        break;
-                    default:
-                        parametreBase = null;
-                        resMsg += " Impossible to continue, this service is used only for destination NIGERIA and CHINA";
-                        break;
-                }
+                ParametreBase parametreBase = parametreBaseService.find("THUNES_PAYER_ID_"+destCountryIso3);
+                if (parametreBase == null) resMsg += " Impossible to continue, this service is not used for destination " + destCountryIso3;
+                else payerId = parametreBase.getValeur();
 
-                if (parametreBase != null) {
-                    payerId = parametreBase.getValeur();
-                }
                 System.out.println("payerId = " + payerId);
 
                 if (payerId != null) {
@@ -207,7 +195,7 @@ public class ThunesServiceImpl implements ThunesService {
 
                     String sdt = new SimpleDateFormat("yyyyMMddHHmmss", Locale.FRENCH).format(new Date());
                     Quotation quotation = new Quotation();
-                    quotation.setExternal_id(senderId + "" + sdt);
+                    quotation.setExternal_id(usr.getUsrId() + "" + sdt);
                     quotation.setMode(ThunesUtil.THUNES_QUOT_MODE_SOURCE_AMOUNT);
                     quotation.setTransaction_type("C2C");
                     quotation.setSource(source);
@@ -242,7 +230,7 @@ public class ThunesServiceImpl implements ThunesService {
 
     @Override
     public GenericsResponse<TransactionEuing> doSendTransaction(TransactionDetailsEntity trxEntity) {
-        GenericsResponse<TransactionEuing> response;
+        GenericsResponse response;
         try {
             System.out.println("doSendTransaction ::: ");
             GenericsResponse<Parametrews> p = parametrewsService.getParametrewsByCode("THUNES"); //get param web service
@@ -263,7 +251,7 @@ public class ThunesServiceImpl implements ThunesService {
                         destCounrty.getPsCode(), destCounrty.getPsLibelle(), trxEntity.getOriginatingCountry(), trxEntity.getLocalAmount(), usr.getUsrId(),
                         trxEntity.getOriginatingCurrency(), trxEntity.getDestinationCurrency());
                 CalculTarifInternational tarif = tarifRes.getData();*/
-                GenericsResponse<TransactionEuing> trxRes = this.doBuildtransaction(trxEntity, pws, usr, service, guichet); //build transaction
+                GenericsResponse<TransactionEuing> trxRes = doBuildtransaction(trxEntity, pws, usr, service, guichet); //build transaction
                 System.out.println("trxRes ::: " + trxRes.getResponseCode() + trxRes.getResponseDescription() + trxRes.getData());
                 TransactionEuing trx = new TransactionEuing();
                 if (trxRes.getResponseCode() == 200) {
@@ -320,7 +308,7 @@ public class ThunesServiceImpl implements ThunesService {
                 transaction.setBeneficiary(beneficiaryThunes);
 
                 System.out.println("transaction thunes ::: " + transaction);
-                GenericsResponse<QuotationResponse> quotresp = this.doQuotation(trxEntity.getLocalAmount(), trxEntity.getOriginatingCountry(), trxEntity.getDestinationCountry(), trxEntity.getOriginatingCurrency(), trxEntity.getDestinationCurrency(), BigDecimal.valueOf(trxEntity.getUserSession()));
+                GenericsResponse<QuotationResponse> quotresp = doQuotation(trxEntity.getLocalAmount(), trxEntity.getOriginatingCountry(), trxEntity.getDestinationCountry(), trxEntity.getOriginatingCurrency(), trxEntity.getDestinationCurrency(), null);
                 System.out.println("quotresp ::: " + quotresp.getResponseCode() + quotresp.getResponseDescription() + quotresp.getData());
                 if (quotresp.getResponseCode() == 200) {
                     QuotationResponse quotation = quotresp.getData();
@@ -366,6 +354,8 @@ public class ThunesServiceImpl implements ThunesService {
 
                                     GenericsResponse resSaveTrx2 = transactionEuingService.createNewInterTransactionC2C(trx); //ok
                                     System.out.println("trxThunesConfirme === >" + resSaveTrx2.getResponseCode());
+                                    System.out.println("trxThunesConfirmeDesc === >" + resSaveTrx2.getResponseDescription());
+                                    System.out.println("trxThunesConfirmeData === >" + resSaveTrx2.getData());
                                     response = new GenericsResponse(resSaveTrx2.getResponseCode(), resSaveTrx2.getResponseDescription(), resSaveTrx2.getData());
                                 } else {
                                     response = new GenericsResponse(resSaveTrx.getResponseCode(), "An error occured during confirmation of transaction on partner. Details : " + confirmationResponse.getStatus_message(), null);
@@ -439,7 +429,17 @@ public class ThunesServiceImpl implements ThunesService {
                 sender.setSenOccupation(trxEntity.getSenderIdDetails().getOccupation());
                 sender.setSenAddress(trxEntity.getSenderDetails().getAddress1());
                 sender.setSenAddress2(trxEntity.getSenderDetails().getAddress2());
+
+                //add senderID
+                //sender.setSenId(usr.getUsrId());
+                //sender.setSenCode(1);
+                //sender.setSenPhoneNumber2("//");
+                //sender.setSenIdDocumentImg1("//");
+                //sender.setSenIdDocumentImg2("//");
+                //sender.setSenIdDocumentImg3("//");
+                //sender.setSenComment("test");
                 //create sender
+                System.out.println("sender " + sender);
                 GenericsResponse<Sender> createSenderResponse = senderService.createSender(sender);
                 if (createSenderResponse.getResponseCode() == 200) {
                     sender = createSenderResponse.getData();

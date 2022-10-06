@@ -55,9 +55,9 @@ public interface TransactionEuingService {
 
     GenericsResponse<TransactionEuing> searchTransaction(String reference);
 
-    public GenericsResponse<Ville> getCityByName(String name);
+    GenericsResponse<Ville> getCityByName(String name);
 
-    public GenericsResponse<Pays> getCountryByCode(String name);
+    GenericsResponse<Pays> getCountryByCode(String name);
 
     GenericsResponse<ResponseSimulation> simulatePayC2COpi(Long guichetId, String guichet, Long companyId, String company, String casher, Long userId, String originCountry, String originCountryId, String destCountry, String destCountryId, String originCur, String destCur, Long serviceId, String serviceName, double amountToPaid, Long paramWs);
 

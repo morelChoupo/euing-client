@@ -9,6 +9,7 @@ import com.ufi.euing.client.integration.worldremit.model.WorldRemitUtil;
 import com.ufi.euing.client.integration.worldremit.response.WRTransactionResponse;
 import com.ufi.euing.client.integration.worldremit.response.WRTransactionUpdateResponse;
 import com.ufi.euing.client.integration.worldremit.service.WorldRemitCallApi;
+import com.ufi.euing.client.props.EuingProperties;
 import com.ufi.euing.client.repositories.GuichetRepository;
 import com.ufi.euing.client.repositories.ParametreBaseRepository;
 import org.springframework.stereotype.Service;
@@ -35,6 +36,8 @@ public class WorldRemitServiceImpl implements WorldRemitService {
 
     final GuichetRepository guichetRepository;
 
+    final EuingProperties euingProperties;
+
     final ParametreBaseRepository parametreBaseRepository;
 
     final ServiceService serviceService;
@@ -53,7 +56,7 @@ public class WorldRemitServiceImpl implements WorldRemitService {
                                  BeneficiaryService beneficiaryService,
                                  GuichetService guichetService,
                                  GuichetRepository guichetRepository,
-                                 ParametreBaseRepository parametreBaseRepository,
+                                 EuingProperties euingProperties, ParametreBaseRepository parametreBaseRepository,
                                  ServiceService serviceService,
                                  PaysService paysService,
                                  TypePieceIdentiteService typePieceIdentiteService,
@@ -66,6 +69,7 @@ public class WorldRemitServiceImpl implements WorldRemitService {
         this.beneficiaryService = beneficiaryService;
         this.guichetService = guichetService;
         this.guichetRepository = guichetRepository;
+        this.euingProperties = euingProperties;
         this.parametreBaseRepository = parametreBaseRepository;
         this.serviceService = serviceService;
         this.paysService = paysService;
@@ -78,6 +82,8 @@ public class WorldRemitServiceImpl implements WorldRemitService {
         GenericsResponse<TransactionDetailsEntity> response;
         try {
             GenericsResponse<Parametrews> p = parametrewsService.getParametrewsByCode("WorldRemit");
+            Guichet guichet = guichetService.getById(euingProperties.getGuichetCode());
+            Utilisateur usr = utilisateurService.find(euingProperties.getUtilisateurCode());
             if (p.getResponseCode() == 200) {
                 Parametrews pws = p.getT();
                 String param = (WorldRemitUtil.WR_URI_GET_TRANS_BY_TRANS_NUM).replace("{param}", criterial.getReference());
@@ -115,11 +121,13 @@ public class WorldRemitServiceImpl implements WorldRemitService {
         GenericsResponse<TransactionEuing> response;
         try {
             GenericsResponse<Parametrews> p = parametrewsService.getParametrewsByCode("JUBA");
+            Guichet guichet = guichetService.getById(euingProperties.getGuichetCode());
+            Utilisateur usr = utilisateurService.find(euingProperties.getUtilisateurCode());
             if (p.getResponseCode() == 200) {
                 Parametrews pws = p.getT();
-                GenericsResponse<Boolean> lock = this.doUpdateWorldRemitTransancation(1, trxEntity.getTransactionNumber(), pws);
+                GenericsResponse<Boolean> lock = doUpdateWorldRemitTransancation(1, trxEntity.getTransactionNumber(), pws);
                 if (lock.getResponseCode() == 200) {
-                    GenericsResponse<Boolean> pay = this.doUpdateWorldRemitTransancation(3, trxEntity.getTransactionNumber(), pws);
+                    GenericsResponse<Boolean> pay = doUpdateWorldRemitTransancation(3, trxEntity.getTransactionNumber(), pws);
                     if (pay.getResponseCode() == 200) {
                         //build transaction
                         TransactionEuing trx = doBuildtransactionForPayment(trxEntity, pws);
@@ -295,9 +303,9 @@ public class WorldRemitServiceImpl implements WorldRemitService {
         TransactionEuing trx = new TransactionEuing();
         try {
             SimpleDateFormat formatter = new SimpleDateFormat("dd/MM/yyyy");
-            Utilisateur usr = utilisateurService.find(BigDecimal.valueOf(trxEntity.getUserSession()));
+            Guichet guichet = guichetService.getById(euingProperties.getGuichetCode());
+            Utilisateur usr = utilisateurService.find(euingProperties.getUtilisateurCode());
             com.ufi.euing.client.entity.Service service = (serviceService.getServiceByCode(JubaUtil.JUBA_PAY_SERVICE_CODE)).getData();
-            Guichet guichet = guichetService.find(Long.valueOf(usr.getUsrUoId() + ""));
             Agence agence = guichet.getAgence();
             Compagnie compagnie = agence.getCompagnie();
             Succursale succursale = compagnie.getSuccursale();

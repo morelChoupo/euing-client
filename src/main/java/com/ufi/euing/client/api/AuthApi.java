@@ -69,17 +69,30 @@ public class AuthApi {
     }
 
     @PostMapping("/change-password")
-    public ResponseEntity<String> changePassword(@RequestParam String email, @RequestParam String newPass, @RequestParam String oldPass) {
+    public ResponseEntity<EuingApiResponse<String>> changePassword(@RequestParam String email, @RequestParam String newPass, @RequestParam String oldPass) {
         log.info("[POST] /api/user/change-password");
-        userService.changePassword(email,newPass, oldPass);
-        return new ResponseEntity<>("Password changed successfully", HttpStatus.OK);
+        EuingApiResponse<String> payload = new EuingApiResponse<>();
+        try {
+            userService.changePassword(email,newPass, oldPass);
+            return ResponseEntity.ok(payload.success("Password changed successfully"));
+        } catch (EuingServiceException e) {
+            log.error(e.getMessage());
+            return new ResponseEntity(e.getMessage(),HttpStatus.valueOf(e.getStatus()));
+        }
     }
 
     @PostMapping("/forgot-password")
-    public ResponseEntity<String> forgotPassword(@RequestParam String email) {
+    public ResponseEntity<EuingApiResponse<String>> forgotPassword(@RequestParam String email) {
         log.info("[POST] /api/user/forgot-password");
-        userService.forgotPassword(email);
-        return new ResponseEntity<>("Password reset successfully", HttpStatus.OK);
+        EuingApiResponse<String> payload = new EuingApiResponse<>();
+        try {
+            userService.forgotPassword(email);
+            return ResponseEntity.ok(payload.success("Password reset successfully"));
+        } catch (EuingServiceException e) {
+            log.error(e.getMessage());
+            return new ResponseEntity(e.getMessage(),HttpStatus.valueOf(e.getStatus()));
+        }
+
     }
 
     @PostMapping("/update/{code}")

@@ -54,6 +54,29 @@ public class CotationDetails {
     @JsonProperty("taxationViewModel")
     private List<TaxationViewModel> taxationViewModel;
 
+
+    @Override
+    public String toString() {
+        return "CotationDetails{" +
+                "QuotationID='" + QuotationID + '\'' +
+                ", Nominated='" + Nominated + '\'' +
+                ", Sender='" + Sender + '\'' +
+                ", SendingCurrency=" + SendingCurrency +
+                ", PayingCurrency=" + PayingCurrency +
+                ", CommissionType=" + CommissionType +
+                ", AmountInPayIn=" + AmountInPayIn +
+                ", AmountInPayOut=" + AmountInPayOut +
+                ", CommissionAmount=" + CommissionAmount +
+                ", CommissionPercent=" + CommissionPercent +
+                ", TotalAmount=" + TotalAmount +
+                ", CustomerRate=" + CustomerRate +
+                ", TotalAmountWithTax=" + TotalAmountWithTax +
+                ", AmountInPayInUSD=" + AmountInPayInUSD +
+                ", BankCharges=" + BankCharges +
+                ", BankChargesType=" + BankChargesType +
+                ", taxationViewModel=" + taxationViewModel +
+                '}';
+    }
 }
 
 @Getter @Setter

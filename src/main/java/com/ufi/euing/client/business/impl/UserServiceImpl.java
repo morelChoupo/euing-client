@@ -1,5 +1,8 @@
 package com.ufi.euing.client.business.impl;
 
+import com.google.i18n.phonenumbers.NumberParseException;
+import com.google.i18n.phonenumbers.PhoneNumberUtil;
+import com.google.i18n.phonenumbers.Phonenumber;
 import com.ufi.euing.client.business.EmailService;
 import com.ufi.euing.client.business.UserService;
 import com.ufi.euing.client.dto.UserCreateDTO;
@@ -12,6 +15,8 @@ import com.ufi.euing.client.repositories.UserRepository;
 import com.ufi.euing.client.utils.JWTTokenProvider;
 import com.ufi.euing.client.utils.others.GenerateCodeUtils;
 import com.ufi.euing.client.utils.others.Tools;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -30,6 +35,8 @@ import java.time.LocalDateTime;
 
 @Service
 public class UserServiceImpl implements UserService {
+
+    private static final Logger LOGGER = LoggerFactory.getLogger(UserServiceImpl.class);
 
 
     final UserRepository userRepository;
@@ -50,11 +57,11 @@ public class UserServiceImpl implements UserService {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST);
 
         if(userRepository.findUserByUsrEmail(user.getUsrEmail())!= null) {
-            throw new EmailExistException("Username already exists with email " + user.getUsrEmail());
+            throw new EmailExistException("Email already exists with email " + user.getUsrEmail());
         }
 
         if(userRepository.findUserByUsrEmailRec(user.getUsrEmailRec())!= null) {
-            throw new EmailExistException("Username already exists with email recuperation " + user.getUsrEmailRec());
+            throw new EmailExistException("Email of recuperation is already exists with email recuperation " + user.getUsrEmailRec());
         }
 
         String code = GenerateCodeUtils.generateUserCode();
@@ -76,6 +83,17 @@ public class UserServiceImpl implements UserService {
         newUser.setRole(ROLE_USER.name());
         newUser.setAuthorities(ROLE_USER.getAuthorities());
         return userRepository.save(newUser);
+    }
+
+    public boolean isValid(String phone) {
+        PhoneNumberUtil phoneUtil = PhoneNumberUtil.getInstance();
+        Phonenumber.PhoneNumber swissNumberProto = null;
+        try {
+            swissNumberProto = phoneUtil.parse(phone, "CM");
+        } catch (NumberParseException e) {
+            LOGGER.error("NumberParseException was thrown: {} ", e.toString());
+        }
+        return phoneUtil.isValidNumber(swissNumberProto);
     }
 
     @Override

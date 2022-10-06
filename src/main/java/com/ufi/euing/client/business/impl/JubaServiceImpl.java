@@ -177,6 +177,7 @@ public class JubaServiceImpl implements JubaService {
             // do quotation
             System.out.println("request = " + request);
             Guichet guichet = guichetService.getById(euingProperties.getGuichetCode());
+            Utilisateur usr = utilisateurService.find(euingProperties.getUtilisateurCode());
             if (guichet == null) {
                 response = new GenericsResponse(500, "Error doGetTarif ::: Guichet not found", null);
             } else {
@@ -188,10 +189,13 @@ public class JubaServiceImpl implements JubaService {
 
                 com.ufi.euing.client.entity.Service service = (serviceService.getServiceByCode(JubaUtil.JUBA_SEND_SERVICE_CODE)).getData();
 
-                GenericsResponse<CotationDetails> quotationResponse = this.doQuotation(request.getOriginatingCountry(), request.getLocalAmount() + "", request.getOriginatingCurrency(), request.getDestinationCurrency());
+                GenericsResponse<CotationDetails> quotationResponse = doQuotation(request.getOriginatingCountry(), request.getLocalAmount() + "", request.getOriginatingCurrency(), request.getDestinationCurrency());
+                System.out.println("Quotation response code " + quotationResponse.getResponseCode());
+                System.out.println("Quotation response " + quotationResponse);
                 if (quotationResponse.getResponseCode() == 200) {
                     GenericsResponse<CalculTarifInternational> feesResponse = transactionEuingService.calculTarifInterTransaction(guichet.getAgence().getCompagnie().getId(), guichet.getAgence().getCompagnie().getLibelle(), service.getId(), service.getNom(),
-                            pd.getPsCode(), pd.getPsLibelle(), guichet.getAgence().getCompagnie().getModeCalculPartner(), request.getLocalAmount(), BigDecimal.valueOf(request.getUsersessionId()), request.getOriginatingCurrency(), request.getDestinationCurrency());
+                            pd.getPsCode(), pd.getPsLibelle(), guichet.getAgence().getCompagnie().getModeCalculPartner(), request.getLocalAmount(), usr.getUsrId(), request.getOriginatingCurrency(), request.getDestinationCurrency());
+                    System.out.println("Fees response " + feesResponse);
                     if (feesResponse.getResponseCode() == 200) {
                         CalculTarifInternational tarif = (CalculTarifInternational) feesResponse.getData();
                         System.out.println("tarif intern = " + tarif);
@@ -256,7 +260,7 @@ public class JubaServiceImpl implements JubaService {
                 /*CalculTarifInternational tarif = (this.doGetTarif(compagnie.getId(), compagnie.getLibelle(), service.getId(), service.getNom(), destCountry.getPsCode(),
                         destCountry.getPsLibelle(), trxEntity.getLocalAmount(), usr.getUsrId(), trxEntity.getOriginatingCurrency(), trxEntity.getDestinationCurrency(),
                         trxEntity.getPartenaire().getCodePartenaire())).getData();*/
-                GenericsResponse<TransactionEuing> trxRes = this.doBuildtransaction(trxEntity, pws, usr, service, guichet); //build transaction
+                GenericsResponse<TransactionEuing> trxRes = doBuildtransaction(trxEntity, pws, usr, service, guichet); //build transaction
                 TransactionEuing trx = new TransactionEuing();
                 if (trxRes.getResponseCode() == 200) {
                     trx = trxRes.getData();
@@ -357,7 +361,7 @@ public class JubaServiceImpl implements JubaService {
                     DoGetTransactionsDetails detailsResponse = this.doGetDetail(criterial.getReference(), pws);
                     System.out.println("detailsResponse = " + detailsResponse);
                     if (detailsResponse != null) {
-                        TransactionDetailsEntity trx = this.doBuildtransactionEntity(detailsResponse, usr.getUsrId().longValue());
+                        TransactionDetailsEntity trx = doBuildtransactionEntity(detailsResponse, usr.getUsrId().longValue());
                         System.out.println("trx = " + trx);
                         response = new GenericsResponse(trx);
                     } else {
@@ -843,8 +847,15 @@ public class JubaServiceImpl implements JubaService {
         return response;
     }
 
-    String doPrecheckEnvoi(TransactionEuing trx) {
+    String doPrecheckEnvoi(TransactionEuing trx) throws EmailNotFoundException {
+        Guichet guichet = guichetService.getById(euingProperties.getGuichetCode());
+        Utilisateur usr = utilisateurService.find(euingProperties.getUtilisateurCode());
         String result = "";
+        trx.setTransGuichetId(guichet);
+        //trx.setTransGuichet();
+        trx.setTransUserid(usr);
+        trx.setTransAgencyId(guichet.getAgence());
+        trx.setTransCompanyId(guichet.getAgence().getCompagnie());
         try {
             GenericsResponse response = transactionEuingService.precheckEnvoiInterC2C(trx);
             result = (String) response.getData();
@@ -939,7 +950,7 @@ public class JubaServiceImpl implements JubaService {
             if (status.response.code.equalsIgnoreCase("001")) {
                 List<DoGetPayRemittanceStatusDetails> data = status.data;
                 System.out.println("data doGetPayRemittanceStatus ::: " + data);
-                if (data.size() > 0) {
+                if (!data.isEmpty()) {
                     statusDetails = data.get(0);
                 }
             }
